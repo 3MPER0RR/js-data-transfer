@@ -43,7 +43,7 @@ Once connected, file transfers happen directly between the two browsers with no 
 Sending files via curl
 The REST API accepts standard HTTP requests, making it easy to integrate into scripts:
 bash# Upload a file
-curl -F 'files=@filetest.bin' http://192.168.1.50:7373/api/upload
+curl -F 'files=@filetest.bin' http://192.x.x.x:7373/api/upload
 
 # List received files
 curl http://192.x.x.x:7373/api/download/filename.bin
