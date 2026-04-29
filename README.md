@@ -6,18 +6,13 @@ JS Data Transfer eliminates the repetitive overhead of spinning up a file server
 
 Features
 
-Single-file bundle — js-data-transfer.js is a self-contained 1.7 MB Node.js bundle. No npm install, no dependencies to manage after the first deployment.
 Zero client setup — client machines only need a browser. No software installation required.
 Automatic port selection — if the default port is busy, the server finds the next available one automatically.
 QR code on startup — the terminal prints a QR code pointing to the server URL, so connecting from a phone or tablet is instant.
 Real-time updates — file list refreshes automatically via WebSocket whenever a new file is received.
 Multi-client chat — lightweight real-time chat between all connected devices, useful during lab sessions.
 REST API — all operations (upload, download, list, delete) are available as JSON endpoints, enabling scripting and automation via curl or any HTTP client.
-P2P mode — js-data-transfer-p2p.html provides direct browser-to-browser file transfer via WebRTC, with no server required at all.
-
-
-Files
-FileDescriptionjs-data-transfer.jsSelf-contained server bundle. The only file you need for LAN mode.start.shOptional shell wrapper. Validates the Node.js version before launching.js-data-transfer-p2p.htmlStandalone P2P interface. Open in any browser, no server required.
+P2P mode — js-data-transfer-p2p.html provides direct browser-to-browser file transfer via WebRTC
 
 Quick Start
 LAN Mode 
