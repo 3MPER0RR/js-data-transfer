@@ -46,13 +46,13 @@ bash# Upload a file
 curl -F 'files=@filetest.bin' http://192.168.1.50:7373/api/upload
 
 # List received files
-curl http://192.168.1.50:7373/api/download/filename.bin
+curl http://192.x.x.x:7373/api/download/filename.bin
 
 # Download a file
-curl -O http://192.168.1.50:7373/api/download/filename.bin
+curl -O http://192.x.x.x:7373/api/download/filename.bin
 
 # Delete a file
-curl -X DELETE http://192.168.1.50:7373/api/files/filename.bin
+curl -X DELETE http://192.x.x.x:7373/api/files/filename.bin
 
 API Reference
 MethodEndpointDescriptionGET/api/infoHost info: hostname, IPs, platform, uptimeGET/api/filesList all received files (name, size, timestamp)POST/api/uploadUpload one or more files (multipart/form-data)GET/api/download/:nameDownload a file by nameDELETE/api/files/:nameDelete a file by nameGET/api/logFull transfer log for the current session
