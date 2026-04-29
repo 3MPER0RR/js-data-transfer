@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS Data Transfer P2P</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f1117;--card:#1e2330;--card2:#141922;--border:#2d3748;--accent:#7dd3fc;--accent2:#1e40af;--text:#e2e8f0;--muted:#64748b;--green:#4ade80;--red:#f87171;--yellow:#fbbf24}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:2rem}
+h1{font-size:1.4rem;font-weight:600;letter-spacing:.05em;color:var(--accent);margin-bottom:.4rem}
+.subtitle{font-size:.85rem;color:var(--muted);margin-bottom:1.75rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:1.25rem}
+.card h2{font-size:.8rem;font-weight:600;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1rem}
+.pill{display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;padding:.25rem .6rem;border-radius:99px;font-weight:600}
+.pill.ok{background:#14532d;color:var(--green)}
+.pill.wait{background:#713f12;color:var(--yellow)}
+.pill.err{background:#7f1d1d;color:var(--red)}
+.steps{display:flex;flex-direction:column;gap:.75rem}
+.step{display:flex;gap:.75rem;align-items:flex-start}
+.step-num{min-width:22px;height:22px;border-radius:50%;background:var(--accent2);color:var(--accent);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-body{flex:1}
+.step-label{font-size:.85rem;font-weight:500;margin-bottom:.4rem}
+.step-sub{font-size:.78rem;color:var(--muted)}
+textarea{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.6rem .75rem;font-family:monospace;font-size:.75rem;resize:vertical;margin-top:.5rem}
+.btn{background:var(--accent2);color:var(--accent);border:none;border-radius:7px;padding:.5rem 1rem;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .15s}
+.btn:hover{background:#2563eb}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn.ghost:hover{background:var(--card2)}
+.btn.green{background:#14532d;color:var(--green)}
+.btn.green:hover{background:#166534}
+.btn-row{display:flex;gap:.6rem;margin-top:.6rem;flex-wrap:wrap}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:2rem 1rem;text-align:center;cursor:pointer;transition:all .2s}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:#1a2744}
+.drop-zone p{color:var(--muted);font-size:.9rem}
+.drop-zone strong{color:var(--accent)}
+.file-queue{display:flex;flex-direction:column;gap:.4rem;margin-top:.75rem;max-height:180px;overflow-y:auto}
+.fq-item{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border-radius:6px;padding:.45rem .7rem;font-size:.82rem}
+.fq-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fq-size{color:var(--muted);margin-left:.5rem;white-space:nowrap}
+.progress-wrap{margin-top:.75rem}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;width:0%;transition:width .08s}
+.progress-label{font-size:.78rem;color:var(--muted);margin-top:.3rem;text-align:right}
+.recv-list{display:flex;flex-direction:column;gap:.4rem;max-height:340px;overflow-y:auto}
+.recv-item{display:flex;align-items:center;background:var(--card2);border-radius:6px;padding:.45rem .7rem;font-size:.82rem;gap:.5rem}
+.recv-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recv-size{color:var(--muted);white-space:nowrap}
+.status-bar{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-size:.82rem;color:var(--muted);margin-top:1.5rem;min-height:2.5rem;display:flex;align-items:center;gap:.5rem}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.green{background:var(--green);box-shadow:0 0 0 2px #14532d}
+.dot.yellow{background:var(--yellow)}
+.dot.red{background:var(--red)}
+.conn-status{display:flex;align-items:center;gap:.5rem;font-size:.82rem;margin-bottom:1rem}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<h1>⚡ JS Data Transfer P2P</h1>
+<p class="subtitle">Trasferimento diretto browser-to-browser — nessun server, velocità massima di rete locale</p>
+
+<div class="conn-status">
+  <div class="dot" id="statusDot"></div>
+  <span id="statusLabel">Non connesso</span>
+  <span style="margin-left:auto"></span>
+  <span class="pill wait" id="rolePill" style="display:none"></span>
+</div>
+
+<div class="grid">
+  <div>
+    <!-- ── Connessione ── -->
+    <div class="card" style="margin-bottom:1.5rem">
+      <h2>Connessione WebRTC</h2>
+      <div class="steps">
+        <!-- Mittente -->
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-label">Mittente — genera Offer</div>
+            <div class="step-sub">Crea la connessione e condividi il testo generato</div>
+            <div class="btn-row"><button class="btn" onclick="createOffer()">Genera Offer</button></div>
+            <textarea id="offerOut" rows="4" placeholder="L'offer apparirà qui..." readonly></textarea>
+            <div class="btn-row"><button class="btn ghost" onclick="copy('offerOut')">Copia Offer</button></div>
+          </div>
+        </div>
+        <!-- Destinatario -->
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-label">Destinatario — incolla Offer e genera Answer</div>
+            <textarea id="offerIn" rows="3" placeholder="Incolla qui l'Offer ricevuto..."></textarea>
+            <div class="btn-row"><button class="btn" onclick="acceptOffer()">Accetta &amp; Genera Answer</button></div>
+            <textarea id="answerOut" rows="4" placeholder="L'answer apparirà qui..." readonly></textarea>
+            <div class="btn-row"><button class="btn ghost" onclick="copy('answerOut')">Copia Answer</button></div>
+          </div>
+        </div>
+        <!-- Mittente riceve answer -->
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-label">Mittente — incolla Answer</div>
+            <div class="step-sub">Incolla l'answer ricevuto dal destinatario per completare la connessione</div>
+            <textarea id="answerIn" rows="3" placeholder="Incolla qui l'Answer..."></textarea>
+            <div class="btn-row"><button class="btn green" onclick="applyAnswer()">Connetti</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Invia File ── -->
+    <div class="card">
+      <h2>Invia file</h2>
+      <div class="drop-zone" id="dropZone">
+        <p><strong>Trascina file qui</strong><br>oppure clicca per selezionare</p>
+      </div>
+      <input type="file" id="fileInput" multiple style="display:none">
+      <div class="file-queue" id="fileQueue"></div>
+      <div class="btn-row" id="sendBtnRow" style="display:none;margin-top:.75rem">
+        <button class="btn" onclick="sendFiles()">⚡ Invia tutti</button>
+        <button class="btn ghost" onclick="clearQueue()">Svuota</button>
+      </div>
+      <div class="progress-wrap" id="progressWrap" style="display:none">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-label" id="progressLabel"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Ricevuti ── -->
+  <div class="card">
+    <h2>File ricevuti</h2>
+    <div class="recv-list" id="recvList"><p style="color:var(--muted);font-size:.85rem">In attesa di connessione...</p></div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="dot" id="logDot"></div>
+  <span id="logMsg">Pronto. Inizia come mittente oppure come destinatario.</span>
+</div>
+
+<script>
+const CHUNK = 64 * 1024; // 64KB chunks
+let pc = null, dc = null, fileQueue = [], recvFiles = [], sending = false;
+let recvBuffer = [], recvMeta = null, recvBytes = 0;
+
+function log(msg, color){
+  document.getElementById('logMsg').textContent = msg;
+  const d = document.getElementById('logDot');
+  d.className = 'dot' + (color ? ' '+color : '');
+}
+function setConn(state){ // disconnected | connecting | connected
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusLabel');
+  if(state==='connected'){dot.className='dot green';lbl.textContent='Connesso';}
+  else if(state==='connecting'){dot.className='dot yellow';lbl.textContent='In connessione...';}
+  else{dot.className='dot red';lbl.textContent='Non connesso';}
+}
+function setRole(r){ const p=document.getElementById('rolePill'); p.style.display=''; p.textContent=r; p.className='pill ok'; }
+function copy(id){ const el=document.getElementById(id); navigator.clipboard.writeText(el.value).then(()=>log('Copiato!','green')); }
+function fmtSize(b){ return b>1048576?(b/1048576).toFixed(1)+'MB':(b/1024).toFixed(0)+'KB'; }
+
+function newPC(){
+  pc = new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+  pc.onicecandidate = ()=>{};
+  pc.onicegatheringstatechange = ()=>{
+    if(pc.iceGatheringState==='complete'){
+      if(pc.localDescription.type==='offer') document.getElementById('offerOut').value = btoa(JSON.stringify(pc.localDescription));
+      else document.getElementById('answerOut').value = btoa(JSON.stringify(pc.localDescription));
+    }
+  };
+  pc.onconnectionstatechange = ()=>{
+    if(pc.connectionState==='connected'){ setConn('connected'); log('Connessione P2P stabilita','green'); }
+    else if(pc.connectionState==='connecting'||pc.connectionState==='new') setConn('connecting');
+    else setConn('disconnected');
+  };
+  pc.ondatachannel = e => { setupDC(e.channel); };
+}
+
+function setupDC(channel){
+  dc = channel;
+  dc.binaryType = 'arraybuffer';
+  dc.bufferedAmountLowThreshold = 256*1024;
+  dc.onopen = ()=>{ log('Data channel aperto — pronto','green'); updateRecvList(); };
+  dc.onmessage = e => {
+    if(typeof e.data === 'string'){
+      const msg = JSON.parse(e.data);
+      if(msg.type==='file_start'){
+        recvMeta = msg; recvBuffer = []; recvBytes = 0;
+        log('Ricezione: '+msg.name+' ('+fmtSize(msg.size)+')');
+      } else if(msg.type==='file_end'){
+        const blob = new Blob(recvBuffer, {type:recvMeta.mime||'application/octet-stream'});
+        recvFiles.push({name:recvMeta.name, size:recvMeta.size, blob});
+        updateRecvList();
+        recvBuffer=[]; recvMeta=null; recvBytes=0;
+        log('Ricevuto: '+blob.size/1024|0+'KB — '+recvFiles.length+' file totali','green');
+      }
+    } else {
+      recvBuffer.push(e.data);
+      recvBytes += e.data.byteLength;
+      if(recvMeta) log('Ricezione '+recvMeta.name+' — '+fmtSize(recvBytes)+'/'+fmtSize(recvMeta.size));
+    }
+  };
+}
+
+async function createOffer(){
+  newPC();
+  setRole('Mittente');
+  dc = pc.createDataChannel('js-data-transfer', {ordered:true});
+  setupDC(dc);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  log('Offer generato — in attesa di candidati ICE...');
+}
+
+async function acceptOffer(){
+  newPC();
+  setRole('Destinatario');
+  const raw = document.getElementById('offerIn').value.trim();
+  if(!raw){ log('Incolla prima l\'offer!',''); return; }
+  const offer = JSON.parse(atob(raw));
+  await pc.setRemoteDescription(offer);
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  log('Answer generato — condividilo col mittente');
+}
+
+async function applyAnswer(){
+  const raw = document.getElementById('answerIn').value.trim();
+  if(!raw){ log('Incolla l\'answer!'); return; }
+  const answer = JSON.parse(atob(raw));
+  await pc.setRemoteDescription(answer);
+  log('Connessione in corso...','');
+}
+
+// ── Coda file ──
+const dz = document.getElementById('dropZone');
+const fi = document.getElementById('fileInput');
+dz.addEventListener('click', ()=>fi.click());
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('over'));
+dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('over');addToQueue(e.dataTransfer.files);});
+fi.addEventListener('change', ()=>addToQueue(fi.files));
+
+function addToQueue(files){
+  for(const f of files) fileQueue.push(f);
+  updateQueue();
+}
+function clearQueue(){ fileQueue=[]; updateQueue(); }
+function updateQueue(){
+  const el = document.getElementById('fileQueue');
+  const btn = document.getElementById('sendBtnRow');
+  if(!fileQueue.length){ el.innerHTML=''; btn.style.display='none'; return; }
+  btn.style.display='flex';
+  el.innerHTML = fileQueue.map((f,i)=>`<div class="fq-item"><span class="file-name">${f.name}</span><span class="fq-size">${fmtSize(f.size)}</span><button class="btn ghost" style="padding:.2rem .5rem;font-size:.75rem" onclick="fileQueue.splice(${i},1);updateQueue()">✕</button></div>`).join('');
+}
+
+async function sendFiles(){
+  if(!dc||dc.readyState!=='open'){ log('Connessione non stabilita',''); return; }
+  if(!fileQueue.length) return;
+  if(sending) return;
+  sending=true;
+  const pw = document.getElementById('progressWrap');
+  const pf = document.getElementById('progressFill');
+  const pl = document.getElementById('progressLabel');
+  pw.style.display='block';
+  const total = fileQueue.reduce((s,f)=>s+f.size,0);
+  let sent=0;
+  for(const file of fileQueue){
+    dc.send(JSON.stringify({type:'file_start',name:file.name,size:file.size,mime:file.type}));
+    const ab = await file.arrayBuffer();
+    for(let offset=0; offset<ab.byteLength; offset+=CHUNK){
+      const chunk = ab.slice(offset, offset+CHUNK);
+      while(dc.bufferedAmount > 8*1024*1024) await new Promise(r=>setTimeout(r,20));
+      dc.send(chunk);
+      sent += chunk.byteLength;
+      const pct = Math.round(sent/total*100);
+      pf.style.width=pct+'%';
+      pl.textContent = fmtSize(sent)+' / '+fmtSize(total)+' — '+pct+'%';
+    }
+    dc.send(JSON.stringify({type:'file_end'}));
+  }
+  log('Invio completato!','green');
+  fileQueue=[];
+  updateQueue();
+  setTimeout(()=>pw.style.display='none',3000);
+  sending=false;
+}
+
+function updateRecvList(){
+  const el=document.getElementById('recvList');
+  if(!recvFiles.length){ el.innerHTML='<p style="color:var(--muted);font-size:.85rem">Nessun file ricevuto ancora...</p>'; return; }
+  el.innerHTML = recvFiles.map((f,i)=>{
+    const url=URL.createObjectURL(f.blob);
+    return `<div class="recv-item"><span class="recv-name">${f.name}</span><span class="recv-size">${fmtSize(f.size)}</span><a class="btn" href="${url}" download="${f.name}" style="padding:.3rem .6rem;font-size:.8rem">↓</a></div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
